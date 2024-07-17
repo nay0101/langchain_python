@@ -4,3 +4,6 @@ def pretty_print_docs(docs):
             [f"Document {i+1}:\n\n" + d.page_content for i, d in enumerate(docs)]
         )
     )
+
+
+__all__ = ["pretty_print_docs"]

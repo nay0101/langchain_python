@@ -1,4 +1,7 @@
 .env  
-__pycache__
 venv
 chroma
+*cache*
+*log
+old*
+db_path
