@@ -28,6 +28,3 @@ def get_embedding_model(
         pass
 
     return embedding
-
-
-__all__ = ["get_embedding_model"]

@@ -27,6 +27,3 @@ def get_retriever(
     )
 
     return retriever
-
-
-__all__ = ["get_retriever"]

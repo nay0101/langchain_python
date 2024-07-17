@@ -144,6 +144,3 @@ def ingest_data(
     vector_store.add_documents(docs)
 
     return (index_name, vector_db, embedding_model, dimension)
-
-
-__all__ = ["get_vector_store_instance", "ingest_data"]

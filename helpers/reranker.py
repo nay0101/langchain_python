@@ -17,6 +17,3 @@ def get_reranker(
     )
 
     return compression_retriever
-
-
-__all__ = ["get_reranker"]

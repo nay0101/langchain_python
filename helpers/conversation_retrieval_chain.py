@@ -45,9 +45,3 @@ def create_conversational_retrieval_chain(
 def invoke_conversational_retrieval_chain(chain: Runnable, input: str) -> Dict:
     result = chain.invoke({"input": input, "chat_history": []})
     return result
-
-
-__all__ = [
-    "create_conversational_retrieval_chain",
-    "invoke_conversational_retrieval_chain",
-]
