@@ -6,6 +6,9 @@ from langchain_core.language_models import LanguageModelLike
 from langchain_core.retrievers import RetrieverLike
 from langchain_core.runnables import Runnable
 from typing import Optional, Dict
+from langfuse.callback import CallbackHandler
+from .custom_types import _LANGFUSE_ARGS
+from .config import Config
 
 
 def create_conversational_retrieval_chain(
@@ -42,6 +45,25 @@ def create_conversational_retrieval_chain(
     return convo_qa_chain
 
 
-def invoke_conversational_retrieval_chain(chain: Runnable, input: str) -> Dict:
-    result = chain.invoke({"input": input, "chat_history": []})
+def invoke_conversational_retrieval_chain(
+    chain: Runnable,
+    input: str,
+    trace: bool = True,
+    langfuse_args: Optional[_LANGFUSE_ARGS] = None,
+) -> Dict:
+    langfuse_handler = (
+        CallbackHandler(
+            public_key=Config.LANGFUSE_PUBLIC_KEY,
+            secret_key=Config.LANGFUSE_SECRET_KEY,
+            host=Config.LANGFUSE_BASEURL,
+            **langfuse_args,
+        )
+        if trace
+        else None
+    )
+    result = chain.invoke(
+        {"input": input, "chat_history": []},
+        config={"callbacks": [langfuse_handler] if langfuse_handler else None},
+    )
+
     return result

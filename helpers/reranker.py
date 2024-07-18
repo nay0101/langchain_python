@@ -9,7 +9,6 @@ def get_reranker(
     model_name: str = "BAAI/bge-reranker-base",
     top_k: int = 3,
 ) -> ContextualCompressionRetriever:
-
     model = HuggingFaceCrossEncoder(model_name=model_name)
     compressor = CrossEncoderReranker(model=model, top_n=top_k)
     compression_retriever = ContextualCompressionRetriever(

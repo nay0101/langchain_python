@@ -7,15 +7,14 @@ from helpers import (
 )
 
 retriever = get_retriever(
-    index_name="demo_dense",
-    embedding_model="text-embedding-3-large",
-    vector_db="elasticsearch",
-    dimension=256,
+    index_name="newfuck",
+    embedding_model="BAAI/bge-m3",
+    vector_db="chromadb",
     hybrid_search=False,
 )
 reranker = get_reranker(base_retriever=retriever)
 
-llm = get_llm(model_name="gpt-4o", temperature=0.5)
+llm = get_llm(model_name="mistralai/Mixtral-8x7B-Instruct-v0.1", temperature=0.5)
 chain = create_conversational_retrieval_chain(
     llm=llm, retriever=reranker, instruction=None
 )

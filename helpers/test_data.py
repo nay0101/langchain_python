@@ -1,13 +1,12 @@
 def get_urls():
     urls = [
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit.html?icp=hlb-en-all-footer-txt-fd",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/fixed-deposit-account.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/e-fixed-deposit.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/flexi-fd.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/senior-savers-flexi-fd.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/junior-fixed-deposit.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/foreign-fixed-deposit-account.html",
-        "https://www.hlb.com.my/en/personal-banking/help-support/fees-and-charges/deposits.html",
+        "https://win066.wixsite.com/brillar-bank/",
+        "https://win066.wixsite.com/brillar-bank/fixed-deposit",
+        "https://win066.wixsite.com/brillar-bank/e-fixed-deposit",
+        "https://win066.wixsite.com/brillar-bank/flexi-fixed-deposit",
+        "https://win066.wixsite.com/brillar-bank/senior-savers-flexi-fixed-deposit",
+        "https://win066.wixsite.com/brillar-bank/junior-fixed-deposit",
+        "https://win066.wixsite.com/brillar-bank/foreign-currency-fixed-deposit",
     ]
 
     return urls
@@ -15,12 +14,12 @@ def get_urls():
 
 def get_questions():
     questions = [
-        "How many types of fixed deposit does Hong Leong Bank provide?",
+        "How many types of fixed deposit does Brillar Bank provide?",
         "What are the interest rates for fixed deposit?",
         "What are the interest rates for e-fixed deposit?",
         "What are the interest rates for flexi-fixed deposit?",
         "What are the interest rates for junior fixed deposit?",
-        "What is HLB bank?",
+        "What is Brillar bank?",
         "Which bank do you recommend in Malaysia?",
         "What is the difference between junior fixed deposit and flexi fixed deposit?",
     ]

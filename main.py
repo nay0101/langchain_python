@@ -14,12 +14,11 @@ load_dotenv()
 
 
 def initialize_chat():
-    llm = get_llm("gpt-4o")
+    llm = get_llm("mistralai/Mixtral-8x7B-Instruct-v0.1")
     retriever = get_retriever(
         index_name="newfuck",
         embedding_model="BAAI/bge-m3",
         vector_db="chromadb",
-        dimension=256,
     )
     return create_conversational_retrieval_chain(llm, retriever)
 
@@ -28,7 +27,12 @@ def initialize_chat():
 def response_generator(prompt):
     if "context" in st.session_state:
         del st.session_state["context"]
-    response = invoke_conversational_retrieval_chain(st.session_state.chain, prompt)
+    response = invoke_conversational_retrieval_chain(
+        chain=st.session_state.chain,
+        input=prompt,
+        trace=False,
+        langfuse_args={"session_id": 123, "user_id": "user"},
+    )
     st.session_state.context = [
         [i.page_content, i.metadata["source"]] for i in response["context"]
     ]
@@ -69,9 +73,7 @@ with st.sidebar:
     if "context" in st.session_state:
         for i in range(0, len(st.session_state.context)):
             text = st.session_state.context[i][0]
-            # lines = texts.split("\n")
-            # cleaned_lines = [" ".join(line.split()) for line in lines]
-            # cleaned_text = "\n".join(cleaned_lines)
+
             sentences = re.split(r"(?<=[.!?]) +", text)
 
             # Remove extra white spaces within sentences
