@@ -1,5 +1,4 @@
-*.env  
-venv
+*env  
 chroma
 *cache*
 *log

@@ -12,7 +12,7 @@ retriever = get_retriever(
     vector_db="chromadb",
     hybrid_search=False,
 )
-reranker = get_reranker(base_retriever=retriever)
+reranker = get_reranker(base_retriever=retriever, model_name="BAAI/bge-reranker-base")
 
 llm = get_llm(model_name="mistralai/Mixtral-8x7B-Instruct-v0.1", temperature=0.5)
 chain = create_conversational_retrieval_chain(

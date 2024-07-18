@@ -17,4 +17,9 @@ _LLMS = {
     "claude-3-5-sonnet-20240620": _VENDORS["anthropic"],
 }
 
-__all__ = ["_EMBEDDING_MODELS", "_LLMS"]
+_RERANKERS = {
+    "BAAI/bge-reranker-base": _VENDORS["huggingface"],
+    "rerank-multilingual-v3.0": _VENDORS["cohere"],
+}
+
+__all__ = ["_EMBEDDING_MODELS", "_LLMS", "_RERANKERS"]

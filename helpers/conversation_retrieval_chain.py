@@ -56,7 +56,7 @@ def invoke_conversational_retrieval_chain(
             public_key=Config.LANGFUSE_PUBLIC_KEY,
             secret_key=Config.LANGFUSE_SECRET_KEY,
             host=Config.LANGFUSE_BASEURL,
-            **langfuse_args,
+            **langfuse_args if langfuse_args else {},
         )
         if trace
         else None
@@ -66,4 +66,13 @@ def invoke_conversational_retrieval_chain(
         config={"callbacks": [langfuse_handler] if langfuse_handler else None},
     )
 
-    return result
+    answer = result["answer"]
+    source_documents = [
+        {"page_content": doc.page_content, "source": doc.metadata["source"]}
+        for doc in result["context"]
+    ]
+
+    if langfuse_handler:
+        langfuse_handler.flush()
+
+    return {"answer": answer, "source_documents": source_documents}
