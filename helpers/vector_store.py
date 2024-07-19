@@ -8,7 +8,7 @@ from langchain_elasticsearch import (
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from typing import List, Tuple, get_args, Optional
+from typing import List, Dict, get_args, Optional, Any
 from langchain_core.vectorstores.base import VectorStore
 from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES
 from .embedding_models import get_embedding_model
@@ -51,13 +51,13 @@ def get_vector_store_instance(
 
 def ingest_data(
     urls: List[str],
-    embedding_model: str,
+    embedding_model: _EMBEDDING_TYPES,
     index_name: str,
     dimension: Optional[int] = None,
     vector_db: _VECTOR_DB = "chromadb",
     chunk_size: int = 2000,
     chunk_overlap: int = 20,
-) -> Tuple[str, str, str, Optional[int]]:
+) -> Dict[str, Any]:
     loader = WebBaseLoader(urls)
     data = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(
@@ -72,4 +72,9 @@ def ingest_data(
     )
     vector_store.add_documents(docs)
 
-    return (index_name, vector_db, embedding_model, dimension)
+    return {
+        "index_name": index_name,
+        "vector_db": vector_db,
+        "embedding_model": embedding_model,
+        "dimension": dimension,
+    }
