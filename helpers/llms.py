@@ -1,15 +1,15 @@
-from .model_mapping import _LLMS
-from .custom_types import _VENDORS
+from .model_mapping import _LLMS, _VENDORS
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import LanguageModelLike
 from .config import Config
+from .custom_types import _LLM_TYPES
 
 
 def get_llm(
-    model_name: str, temperature: float = 0.7, top_p: float = 1.0
+    model_name: _LLM_TYPES, temperature: float = 0.7, top_p: float = 0.9
 ) -> LanguageModelLike:
     llm_vendor = _LLMS[model_name]
 
@@ -19,6 +19,7 @@ def get_llm(
             temperature=temperature,
             api_key=Config.OPENAI_API_KEY,
             model_kwargs={"top_p": top_p},
+            max_retries=0,
         )
     elif llm_vendor == _VENDORS["googlegenai"]:
         llm = ChatGoogleGenerativeAI(
@@ -26,6 +27,7 @@ def get_llm(
             temperature=temperature,
             google_api_key=Config.GOOGLE_API_KEY,
             top_p=top_p,
+            max_retries=0,
         )
     elif llm_vendor == _VENDORS["anthropic"]:
         llm = ChatAnthropic(
@@ -33,6 +35,7 @@ def get_llm(
             temperature=temperature,
             api_key=Config.ANTHROPIC_API_KEY,
             top_p=top_p,
+            max_retries=0,
         )
     elif llm_vendor == _VENDORS["huggingface"]:
         base_model = HuggingFaceEndpoint(

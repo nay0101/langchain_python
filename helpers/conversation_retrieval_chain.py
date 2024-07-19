@@ -5,10 +5,26 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models import LanguageModelLike
 from langchain_core.retrievers import RetrieverLike
 from langchain_core.runnables import Runnable
-from typing import Optional, Dict
+from typing import Any, Optional
 from langfuse.callback import CallbackHandler
-from .custom_types import _LANGFUSE_ARGS
+from .custom_types import _LangfuseArgs, _ChainResult
 from .config import Config
+from langchain_core.outputs import LLMResult
+from langchain.callbacks.base import BaseCallbackHandler
+
+
+class LLMResultHandler(BaseCallbackHandler):
+    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+        if response.generations[0][0].message.usage_metadata:
+            token_usage = response.generations[0][0].message.usage_metadata
+        else:
+            usage = response.generations[0][0].message.response_metadata["token_usage"]
+            token_usage = {
+                "input_tokens": usage.prompt_tokens,
+                "output_tokens": usage.completion_tokens,
+                "total_tokens": usage.total_tokens,
+            }
+        self.response = token_usage
 
 
 def create_conversational_retrieval_chain(
@@ -53,8 +69,8 @@ def invoke_conversational_retrieval_chain(
     chain: Runnable,
     input: str,
     trace: bool = True,
-    langfuse_args: Optional[_LANGFUSE_ARGS] = None,
-) -> Dict:
+    langfuse_args: Optional[_LangfuseArgs] = None,
+) -> _ChainResult:
     langfuse_handler = (
         CallbackHandler(
             public_key=Config.LANGFUSE_PUBLIC_KEY,
@@ -65,9 +81,17 @@ def invoke_conversational_retrieval_chain(
         if trace
         else None
     )
+
+    llm_result_handler = LLMResultHandler()
     result = chain.invoke(
         {"input": input, "chat_history": []},
-        config={"callbacks": [langfuse_handler] if langfuse_handler else None},
+        config={
+            "callbacks": (
+                [llm_result_handler, langfuse_handler]
+                if langfuse_handler
+                else [llm_result_handler]
+            )
+        },
     )
 
     answer = result["answer"]
@@ -76,7 +100,15 @@ def invoke_conversational_retrieval_chain(
         for doc in result["context"]
     ]
 
+    token_usage = llm_result_handler.response
+
+    output = {
+        "answer": answer,
+        "source_documents": source_documents,
+        "token_usage": token_usage,
+    }
+
     if langfuse_handler:
         langfuse_handler.flush()
 
-    return {"answer": answer, "source_documents": source_documents}
+    return output

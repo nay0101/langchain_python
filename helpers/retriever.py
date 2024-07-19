@@ -1,4 +1,4 @@
-from .custom_types import _VECTOR_DB
+from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES
 from typing import Optional
 from langchain_core.retrievers import RetrieverLike
 from .vector_store import get_vector_store_instance
@@ -6,7 +6,7 @@ from .vector_store import get_vector_store_instance
 
 def get_retriever(
     index_name: str,
-    embedding_model: str,
+    embedding_model: _EMBEDDING_TYPES,
     vector_db: _VECTOR_DB = "chromadb",
     dimension: Optional[int] = None,
     top_k: int = 4,

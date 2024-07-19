@@ -1,4 +1,3 @@
-import os
 from langchain_elasticsearch import (
     ElasticsearchStore,
 )
@@ -11,84 +10,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from typing import List, Tuple, get_args, Optional
 from langchain_core.vectorstores.base import VectorStore
-from .custom_types import _VECTOR_DB
+from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES
 from .embedding_models import get_embedding_model
 import chromadb
-
-__ES_CLOUD_ID = os.getenv("ELASTIC_CLOUD_ID")
-__ES_API_KEY = os.getenv("ELASTIC_API_KEY")
-
-"""
-def initialize_retriever(documents, index_name, embedding, type):
-    if type == "bm25":
-        bm25_vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}_bm25",
-            strategy=BM25Strategy(),
-        )
-        dense_vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}_dense",
-            embedding=embedding,
-            strategy=DenseVectorStrategy(),
-        )
-
-        dense_retriever = dense_vector_store.as_retriever(search_kwargs={"k": 5})
-        bm25_retriever = bm25_vector_store.as_retriever(search_kwargs={"k": 5})
-
-        retriever = EnsembleRetriever(retrievers=[dense_retriever, bm25_retriever])
-    elif type == "hybrid":
-        vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}_hybrid",
-            embedding=embedding,
-            strategy=DenseVectorStrategy(hybrid=True),
-        )
-        retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-
-    elif type == "sparse":
-        dense_vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}_dense",
-            strategy=SparseVectorStrategy(model_id=".elser_model_2"),
-        )
-        sparse_vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}_sparse",
-            embedding=embedding,
-            strategy=DenseVectorStrategy(),
-        )
-        dense_retriever = dense_vector_store.as_retriever(search_kwargs={"k": 5})
-        sparse_retriever = sparse_vector_store.as_retriever(search_kwargs={"k": 5})
-
-        retriever = EnsembleRetriever(retrievers=[dense_retriever, sparse_retriever])
-    else:
-        vector_store = ElasticsearchStore.from_documents(
-            documents=documents,
-            es_cloud_id=es_cloud_id,
-            es_api_key=es_api_key,
-            index_name=f"{index_name}",
-            embedding=embedding,
-            strategy=DenseVectorStrategy(),
-        )
-        retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-
-    return retriever
-"""
+from .config import Config
 
 
 def get_vector_store_instance(
-    embedding_model: str,
+    embedding_model: _EMBEDDING_TYPES,
     index_name: str,
     dimension: Optional[int] = None,
     vector_db: _VECTOR_DB = "chromadb",
@@ -108,8 +37,8 @@ def get_vector_store_instance(
         )
     elif vector_db == options["elasticsearch"]:
         vector_store = ElasticsearchStore(
-            es_cloud_id=__ES_CLOUD_ID,
-            es_api_key=__ES_API_KEY,
+            es_cloud_id=Config.ELASTIC_CLOUD_ID,
+            es_api_key=Config.ELASTIC_API_KEY,
             embedding=embedding,
             index_name=index_name,
             strategy=DenseVectorStrategy(hybrid=hybrid_search),

@@ -5,6 +5,7 @@ from helpers import (
     create_conversational_retrieval_chain,
     get_llm,
     get_retriever,
+    get_reranker,
 )
 from dotenv import load_dotenv
 import re
@@ -14,13 +15,16 @@ load_dotenv()
 
 
 def initialize_chat():
-    llm = get_llm("mistralai/Mixtral-8x7B-Instruct-v0.1")
+    llm = get_llm(model_name="mistralai/Mixtral-8x7B-Instruct-v0.1")
     retriever = get_retriever(
-        index_name="newfuck",
-        embedding_model="BAAI/bge-m3",
+        index_name="newtestwithgoogle",
+        embedding_model="text-embedding-004",
         vector_db="chromadb",
     )
-    return create_conversational_retrieval_chain(llm, retriever)
+    reranker = get_reranker(
+        base_retriever=retriever, model_name="BAAI/bge-reranker-base"
+    )
+    return create_conversational_retrieval_chain(llm=llm, retriever=reranker)
 
 
 # Streamed response emulator
@@ -30,13 +34,17 @@ def response_generator(prompt):
     response = invoke_conversational_retrieval_chain(
         chain=st.session_state.chain,
         input=prompt,
-        trace=False,
+        trace=True,
         langfuse_args={"session_id": 123, "user_id": "user"},
     )
+    answer = response["answer"]
+    source_documents = response["source_documents"]
+    token_usage = response["token_usage"]
+    st.session_state.token_usage = token_usage
     st.session_state.context = [
-        [i.page_content, i.metadata["source"]] for i in response["context"]
+        [i["page_content"], i["source"]] for i in source_documents
     ]
-    for word in response["answer"].split():
+    for word in answer.split():
         yield word + " "
         time.sleep(0.05)
 
@@ -71,6 +79,7 @@ if prompt := st.chat_input("What is up?"):
 
 with st.sidebar:
     if "context" in st.session_state:
+        st.text(st.session_state.token_usage)
         for i in range(0, len(st.session_state.context)):
             text = st.session_state.context[i][0]
 
