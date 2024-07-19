@@ -27,9 +27,13 @@ def create_conversational_retrieval_chain(
         llm, retriever, condense_question_prompt
     )
 
-    system_prompt = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.
+    system_prompt = (
+        instruction + """\n\n{context}"""
+        if instruction
+        else """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.
     \n\n
     {context}"""
+    )
 
     qa_prompt = ChatPromptTemplate.from_messages(
         [

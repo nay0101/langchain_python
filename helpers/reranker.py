@@ -19,7 +19,7 @@ def get_reranker(
         compressor = CrossEncoderReranker(model=model, top_n=top_k)
     elif reranker_vendor == _VENDORS["cohere"]:
         compressor = CohereRerank(
-            model=model_name, cohere_api_key=Config.COHERE_API_KEY
+            model=model_name, cohere_api_key=Config.COHERE_API_KEY, top_n=top_k
         )
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=base_retriever
