@@ -7,9 +7,10 @@ from helpers import (
 )
 
 retriever = get_retriever(
-    index_name="newtestwithgoogle",
-    embedding_model="text-embedding-004",
-    vector_db="chromadb",
+    index_name="qdrant_test",
+    embedding_model="text-embedding-3-large",
+    dimension=256,
+    vector_db="qdrant",
     hybrid_search=False,
 )
 reranker = get_reranker(base_retriever=retriever, model_name="BAAI/bge-reranker-base")
@@ -19,3 +20,4 @@ chain = create_conversational_retrieval_chain(
     llm=llm, retriever=reranker, instruction=None
 )
 result = invoke_conversational_retrieval_chain(chain, "what is fixed deposit")
+print(result)

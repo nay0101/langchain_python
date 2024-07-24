@@ -7,22 +7,21 @@ from helpers import (
     get_retriever,
     get_reranker,
 )
-from dotenv import load_dotenv
 import re
 
 
-load_dotenv()
-
-
 def initialize_chat():
-    llm = get_llm(model_name="mistralai/Mixtral-8x7B-Instruct-v0.1")
+    llm = get_llm(model_name="claude-3-haiku-20240307")
     retriever = get_retriever(
-        index_name="newtestwithgoogle",
-        embedding_model="text-embedding-004",
-        vector_db="chromadb",
+        index_name="qdrant_test",
+        embedding_model="text-embedding-3-large",
+        dimension=256,
+        vector_db="qdrant",
+        hybrid_search=False,
+        top_k=5,
     )
     reranker = get_reranker(
-        base_retriever=retriever, model_name="BAAI/bge-reranker-base"
+        base_retriever=retriever, model_name="BAAI/bge-reranker-base", top_k=5
     )
     return create_conversational_retrieval_chain(llm=llm, retriever=reranker)
 
@@ -49,11 +48,10 @@ def response_generator(prompt):
         time.sleep(0.05)
 
 
-st.title("Simple chat")
-
 if "chain" not in st.session_state:
     st.session_state.chain = initialize_chat()
 
+st.title("Chat")
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -64,7 +62,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Accept user input
-if prompt := st.chat_input("What is up?"):
+if prompt := st.chat_input("Enter you message..."):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     # Display user message in chat message container
@@ -78,6 +76,8 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "assistant", "content": response})
 
 with st.sidebar:
+    st.title("Config")
+
     if "context" in st.session_state:
         st.text(st.session_state.token_usage)
         for i in range(0, len(st.session_state.context)):

@@ -1,20 +1,20 @@
-from helpers.vector_store import ingest_data
-from dotenv import load_dotenv
+from helpers import ingest_data, crawl
 
-load_dotenv()
-result = ingest_data(
-    urls=[
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit.html?icp=hlb-en-all-footer-txt-fd",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/fixed-deposit-account.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/e-fixed-deposit.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/flexi-fd.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/senior-savers-flexi-fd.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/junior-fixed-deposit.html",
-        "https://www.hlb.com.my/en/personal-banking/fixed-deposit/fixed-deposit-account/foreign-fixed-deposit-account.html",
-        "https://www.hlb.com.my/en/personal-banking/help-support/fees-and-charges/deposits.html",
+urls = crawl(
+    start_url="https://win066.wixsite.com/brillar-bank/",
+    ignore_list=[
+        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-1",
+        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-2",
+        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-3",
+        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-4",
     ],
-    embedding_model="text-embedding-004",
-    index_name="newtestwithgoogle",
-    vector_db="chromadb",
+)
+result = ingest_data(
+    urls=urls,
+    embedding_model="text-embedding-3-large",
+    index_name="qdrant_test",
+    vector_db="qdrant",
+    dimension=256,
+    hybrid_search=True,
 )
 print(result)

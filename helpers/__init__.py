@@ -13,6 +13,8 @@ from helpers.retriever import get_retriever
 
 from helpers.vector_store import get_vector_store_instance, ingest_data
 
+from helpers.webcrawler import crawl
+
 __all__ = [
     "create_conversational_retrieval_chain",
     "invoke_conversational_retrieval_chain",
@@ -22,4 +24,5 @@ __all__ = [
     "get_retriever",
     "get_vector_store_instance",
     "ingest_data",
+    "crawl",
 ]

@@ -1,17 +1,22 @@
-from .model_mapping import _LLMS, _VENDORS
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import LanguageModelLike
+from typing import Optional
 from .config import Config
 from .custom_types import _LLM_TYPES
+from .model_mapping import _LLMS, _VENDORS
 
 
 def get_llm(
     model_name: _LLM_TYPES, temperature: float = 0.7, top_p: float = 0.9
-) -> LanguageModelLike:
+) -> Optional[LanguageModelLike]:
     llm_vendor = _LLMS[model_name]
+
+    if llm_vendor not in _VENDORS:
+        print("Invalid LLM.")
+        return None
 
     if llm_vendor == _VENDORS["openai"]:
         llm = ChatOpenAI(
@@ -46,7 +51,6 @@ def get_llm(
         )
         llm = ChatHuggingFace(llm=base_model)
     else:
-        print("Invalid LLM.")
-        pass
+        return None
 
     return llm

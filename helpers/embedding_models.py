@@ -13,6 +13,10 @@ def get_embedding_model(
 ) -> Optional[Embeddings]:
     embedding_vendor = _EMBEDDING_MODELS[embedding_model]
 
+    if embedding_vendor not in _VENDORS:
+        print("Invalid Embedding Model.")
+        return None
+
     if embedding_vendor == _VENDORS["openai"]:
         embedding = OpenAIEmbeddings(
             model=embedding_model, dimensions=dimension, api_key=Config.OPENAI_API_KEY
@@ -26,7 +30,6 @@ def get_embedding_model(
             model_name=embedding_model, api_key=Config.HUGGINGFACEHUB_API_TOKEN
         )
     else:
-        print("Invalid Embedding Model.")
-        pass
+        return None
 
     return embedding

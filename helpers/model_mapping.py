@@ -17,6 +17,7 @@ _EMBEDDING_MODELS = {
 _LLMS = {
     "gpt-3.5-turbo": _VENDORS["openai"],
     "gpt-4o": _VENDORS["openai"],
+    "gpt-4o-mini": _VENDORS["openai"],
     "gpt-4-turbo": _VENDORS["openai"],
     "mistralai/Mixtral-8x7B-Instruct-v0.1": _VENDORS["huggingface"],
     "claude-3-haiku-20240307": _VENDORS["anthropic"],

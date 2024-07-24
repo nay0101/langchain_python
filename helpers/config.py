@@ -15,3 +15,5 @@ class Config:
     LANGFUSE_SECRET_KEY: str | None = os.getenv("LANGFUSE_SECRET_KEY")
     LANGFUSE_PUBLIC_KEY: str | None = os.getenv("LANGFUSE_PUBLIC_KEY")
     LANGFUSE_BASEURL: str | None = os.getenv("LANGFUSE_BASEURL")
+    QDRANT_API_KEY: str | None = os.getenv("QDRANT_API_KEY")
+    QDRANT_URL: str | None = os.getenv("QDRANT_URL")
