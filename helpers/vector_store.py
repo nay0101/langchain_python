@@ -44,6 +44,7 @@ def get_vector_store_instance(
             index_name=index_name,
             strategy=DenseVectorStrategy(hybrid=hybrid_search),
         )
+    # Not for Developement, Still in testing
     elif vector_db == options["qdrant"]:
         vector_store = QdrantVectorStore.construct_instance(
             client_options={"api_key": Config.QDRANT_API_KEY, "url": Config.QDRANT_URL},
