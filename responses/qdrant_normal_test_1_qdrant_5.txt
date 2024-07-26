@@ -1,0 +1,28 @@
+Question: Tell me what is Brillar bank?
+Answer: Brillar Bank is a financial institution dedicated to helping customers achieve financial success through savings, investments, and expert advice. They offer a variety of fixed deposit accounts, including options for seniors, children, and foreign currency investments. Additionally, they provide online and mobile banking services for convenient account management. 
+
+------------------------------------------------------------------------------------------------
+Question: How many types of fixed deposit does Brillar Bank provide?
+Answer: Brillar Bank provides six types of fixed deposit accounts: Fixed Deposit, Flexi Fixed Deposit, e-Fixed Deposit, Senior Savers Flexi Fixed Deposit, Junior Fixed Deposit, and Foreign Currency Fixed Deposit. 
+
+------------------------------------------------------------------------------------------------
+Question: What are the interest rates for fixed deposit?
+Answer: The interest rates for fixed deposits at Brillar Bank are as follows: - 1 month: 2.15% - 2-3 months: 2.25% - 4-5 months: 2.30% - 6 months: 2.30% - 7-11 months: 2.35% - 12-60 months: 2.35% 
+
+------------------------------------------------------------------------------------------------
+Question: What are the interest rates for e-fixed deposit?
+Answer: The interest rates for e-fixed deposits at Brillar Bank are as follows: - 1 month: 1.85% - 2 months: 2.25% - 3 months: 2.25% - 4 months: 2.30% - 5 months: 2.30% - 6 months: 2.30% - 7 months: 2.35% - 8 months: 2.35% - 9 months: 2.35% - 10 months: 2.35% - 11 months: 2.35% - 12 months: 2.35% - 13 - 60 months: 2.35% 
+
+------------------------------------------------------------------------------------------------
+Question: What are the interest rates for flexi-fixed deposit?
+Answer: The interest rate for the Flexi Fixed Deposit at Brillar Bank is 2.50% for a 12-month tenure. 
+
+------------------------------------------------------------------------------------------------
+Question: What are the interest rates for junior fixed deposit?
+Answer: The interest rates for the Junior Fixed Deposit at Brillar Bank are as follows: - 1 month: 2.15% - 2 - 3 months: 2.25% - 4 - 5 months: 2.30% - 6 months: 2.30% - 7 - 11 months: 2.35% - 12 - 60 months: 2.50% 
+
+------------------------------------------------------------------------------------------------
+Question: What is the difference between Fixed Deposit and eFixed Deposit?
+Answer: The primary differences between Fixed Deposit and eFixed Deposit at Brillar Bank are: 1. **Access and Management**: eFixed Deposit can be managed online via Brillar Online, allowing for new placements and withdrawals anytime, whereas Fixed Deposit requires branch visits for withdrawals. 2. **Minimum Deposit**: Both have the same minimum deposit requirements (RM5,000 for 1 month and RM500 for 2 months and above). 3. **Interest Rates**: The interest rates for both Fixed Deposit and eFixed Deposit are the same, ranging from 1.85% for 1 month to 2.35% for tenures of 7 months and above. 
+
+------------------------------------------------------------------------------------------------

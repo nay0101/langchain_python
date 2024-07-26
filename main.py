@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit import session_state as session
 import time
 from helpers import (
     invoke_conversational_retrieval_chain,
@@ -9,116 +10,187 @@ from helpers import (
     crawl,
     ingest_data,
 )
+from helpers.test_data import get_questions
 from helpers.custom_types import (
     _LLM_TYPES,
     _EMBEDDING_TYPES,
     _VECTOR_DB,
     _CRAWLING_TYPES,
     _RERANKER_TYPES,
+    _SPARSE_MODEL_TYPES,
 )
 from typing import get_args
-import re
 import math
 
 initial_config = {
-    "llm": "claude-3-haiku-20240307",
-    "embedding": "text-embedding-3-large",
+    "chat_model": "gpt-4o",
+    "embedding_model": "text-embedding-3-large",
+    "ingest_embedding_model": "text-embedding-3-large",
     "dimension": 256,
+    "ingest_dimension": 256,
     "vector_db": "qdrant",
+    "ingest_vector_db": "qdrant",
     "index_name": "qdrant_hybrid_test_1",
+    "ingest_index_name": "qdrant_hybrid_test_1",
     "hybrid_search": True,
+    "ingest_hybrid_search": True,
+    "sparse_model": "Qdrant/bm25",
+    "ingest_sparse_model": "Qdrant/bm25",
     "top_k": 5,
     "top_p": 0.9,
     "temperature": 0.1,
-    "reranker": "BAAI/bge-reranker-base",
+    "use_reranker": False,
+    "reranker_model": "BAAI/bge-reranker-base",
     "score_threshold": 0.01,
     "instruction": "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.",
 }
 
+
+for key, value in initial_config.items():
+    if key not in session:
+        session[key] = value
+
+
 data_ingest_config = {
     "initial_url": "https://win066.wixsite.com/brillar-bank",
-    "ignore_urls": [
-        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-1",
-        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-2",
-        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-3",
-        "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-4",
-    ],
+    "ignore_urls": "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-1,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-2,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-3,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-4,",
     "crawling_method": "crawl_child_urls",
     "max_depth": 3,
     "chunk_size": 2000,
     "chunk_overlap": 200,
 }
 
+for key, value in data_ingest_config.items():
+    if key not in session:
+        session[key] = value
 
-def initialize_chat():
-    st.session_state.llm = get_llm(
-        model_name=initial_config["llm"],
-        temperature=initial_config["temperature"],
-        top_p=initial_config["top_p"],
-    )
-    st.session_state.retriever = get_retriever(
-        index_name=initial_config["index_name"],
-        embedding_model=initial_config["embedding"],
-        dimension=initial_config["dimension"],
-        vector_db=initial_config["vector_db"],
-        hybrid_search=initial_config["hybrid_search"],
-        top_k=initial_config["top_k"],
-        score_threshold=initial_config["score_threshold"],
-    )
-    st.session_state.reranker = get_reranker(
-        base_retriever=st.session_state.retriever,
-        model_name=initial_config["reranker"],
-        top_k=initial_config["top_k"],
-    )
-    st.session_state.instruction = initial_config["instruction"]
 
-    return create_conversational_retrieval_chain(
-        llm=st.session_state.llm,
-        retriever=st.session_state.reranker,
-        instruction=st.session_state.instruction,
+def dimension_available(embedding_model):
+    return (
+        embedding_model == "text-embedding-3-large"
+        or embedding_model == "text-embedding-3-small"
     )
+
+
+def is_hybrid_search(vector_db):
+    return vector_db == "elasticsearch" or vector_db == "qdrant"
+
+
+def initialize_components():
+
+    if "llm" not in session:
+        session.llm = get_llm(
+            model_name=session.chat_model,
+            temperature=session.temperature,
+            top_p=session.top_p,
+        )
+
+    if "retriever" not in session:
+        session.retriever = get_retriever(
+            index_name=session.index_name,
+            embedding_model=session.embedding_model,
+            dimension=session.dimension,
+            vector_db=session.vector_db,
+            hybrid_search=session.hybrid_search,
+            top_k=session.top_k,
+            score_threshold=session.score_threshold,
+        )
+
+    if "reranker" not in session:
+        session.reranker = get_reranker(
+            base_retriever=session.retriever,
+            model_name=session.reranker_model,
+            top_k=session.top_k,
+        )
+
+    if "instruction" not in session:
+        session.instruction = session.instruction
+
+
+def get_chain():
+    session.chain = create_conversational_retrieval_chain(
+        llm=session.llm,
+        retriever=(session.reranker if session.use_reranker else session.retriever),
+        instruction=session.instruction,
+    )
+
+
+def save_response(path, question, answer, context):
+    with open(path, "+a", encoding="utf-8") as file:
+        file.write(f"Question: {question}\nAnswer: {answer}\n\n")
+        # file.write(f"Context:\n\n")
+        # for i in range(0, len(context)):
+        #     file.write(f"Source: {context[i][1]}\n{context[i][0]}")
+        #     file.write(
+        #         "\n------------------------------------------------------------------------------------------------\n"
+        #     )
+        file.write(
+            "------------------------------------------------------------------------------------------------\n"
+        )
 
 
 # Streamed response emulator
 def response_generator(prompt):
     response = invoke_conversational_retrieval_chain(
-        chain=st.session_state.chain,
+        chain=session.chain,
         input=prompt,
         trace=False,
     )
     answer = response["answer"]
     source_documents = response["source_documents"]
     token_usage = response["token_usage"]
-    # st.session_state.response
-    st.session_state.token_usage = token_usage
-    st.session_state.context = [
-        [i["page_content"], i["source"]] for i in source_documents
-    ]
+    # session.response
+    session.token_usage = token_usage
+    session.context = [[i["page_content"], i["source"]] for i in source_documents]
     for word in answer.split():
         yield word + " "
         time.sleep(0.05)
 
 
-if "chain" not in st.session_state:
-    st.session_state.chain = initialize_chat()
+initialize_components()
+
+if "chain" not in session:
+    get_chain()
 
 st.title("Chat")
 # Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if "messages" not in session:
+    session.messages = []
 
 # Display chat messages from history on app rerun
-for message in st.session_state.messages:
+for message in session.messages:
     with st.chat_message(message["role"]):
         if message["role"] == "assistant":
             response = message["content"]["response"]
             tokens = message["content"]["token_usage"]
             context = message["content"]["context"]
             st.markdown(response)
-            st.text(
-                f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-            )
+            left, right = st.columns(2, vertical_alignment="center")
+            with left:
+                st.text(
+                    f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
+                )
+            with right:
+                save_response_button = st.button(
+                    label="Save Response",
+                    key=f"save_response_button_{session.messages.index(message)}",
+                )
 
+            if save_response_button:
+                with st.spinner("Saving..."):
+                    save_file_path = (
+                        f"./responses/{session.index_name}_{session.vector_db}.txt"
+                    )
+
+                    save_response(
+                        path=save_file_path,
+                        question=session.messages[session.messages.index(message) - 1][
+                            "content"
+                        ],
+                        answer=response,
+                        context=context,
+                    )
+                st.success("Response Saved.")
             st.text(f"Sources:")
             for i in range(0, len(context)):
                 with st.popover(f"{context[i][1]}"):
@@ -126,10 +198,11 @@ for message in st.session_state.messages:
         else:
             st.markdown(message["content"])
 
+
 # Accept user input
 if prompt := st.chat_input("Enter you message..."):
     # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    session.messages.append({"role": "user", "content": prompt})
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -137,11 +210,32 @@ if prompt := st.chat_input("Enter you message..."):
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
         response = st.write_stream(response_generator(prompt))
-        tokens = st.session_state.token_usage
-        context = st.session_state.context
-        st.text(
-            f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-        )
+        tokens = session.token_usage
+        context = session.context
+        left, right = st.columns(2, vertical_alignment="center")
+        with left:
+            st.text(
+                f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
+            )
+        with right:
+            save_response_button = st.button(
+                label="Save Response",
+                key=f"save_response_button_{len(session.messages)}",
+            )
+
+            if save_response_button:
+                with st.spinner("Saving..."):
+                    save_file_path = (
+                        f"./responses/{session.index_name}_{session.vector_db}.txt"
+                    )
+
+                    save_response(
+                        path=save_file_path,
+                        question=prompt,
+                        answer=response,
+                        context=context,
+                    )
+                st.success("Response Saved.")
 
         st.text(f"Sources:")
         for i in range(0, len(context)):
@@ -149,7 +243,7 @@ if prompt := st.chat_input("Enter you message..."):
                 st.markdown(context[i][0])
 
     # Add assistant response to chat history
-    st.session_state.messages.append(
+    session.messages.append(
         {
             "role": "assistant",
             "content": {
@@ -166,8 +260,7 @@ with st.sidebar:
         st.title("Add Data Source")
         link_to_crawl = st.text_input(
             label="Link to Crawl",
-            key="link_to_crawl",
-            value=data_ingest_config["initial_url"],
+            key="initial_url",
         )
 
         crawl_options = sorted(get_args(_CRAWLING_TYPES))
@@ -175,21 +268,18 @@ with st.sidebar:
             label="Crawling Option",
             options=crawl_options,
             key="crawling_method",
-            index=crawl_options.index(data_ingest_config["crawling_method"]),
         )
 
         ignore_urls = st.text_area(
             label="Ignore URLS",
             key="ignore_urls",
-            value=",".join(data_ingest_config["ignore_urls"]),
         )
 
         max_crawl_depth = st.number_input(
             label="Max Depth",
             min_value=0,
             max_value=5,
-            key="max_crawl_depth",
-            value=data_ingest_config["max_depth"],
+            key="max_depth",
         )
 
         chunk_size = st.slider(
@@ -198,7 +288,6 @@ with st.sidebar:
             max_value=5000,
             step=100,
             key="chunk_size",
-            value=data_ingest_config["chunk_size"],
         )
 
         chunk_overlap = st.slider(
@@ -207,51 +296,44 @@ with st.sidebar:
             max_value=int(math.floor(chunk_size / 2)),
             step=10,
             key="chunk_overlap",
-            value=data_ingest_config["chunk_overlap"],
         )
 
-        embedding_options = sorted(get_args(_EMBEDDING_TYPES))
-        embedding_model = st.selectbox(
+        ingest_embedding_model = st.selectbox(
             label="Embedding Model",
-            options=embedding_options,
-            key="embedding_model",
-            index=embedding_options.index(initial_config["embedding"]),
+            options=sorted(get_args(_EMBEDDING_TYPES)),
+            key="ingest_embedding_model",
         )
 
-        if (
-            embedding_model == "text-embedding-3-large"
-            or embedding_model == "text-embedding-3-small"
-        ):
-            embedding_dimension = st.number_input(
-                label="Embedding Dimension",
-                value=initial_config["dimension"],
-                key="embedding_dimension",
+        if dimension_available(ingest_embedding_model):
+            ingest_embedding_dimension = st.number_input(
+                label="Embedding Model Dimension", key="ingest_dimension", min_value=0
             )
         else:
-            embedding_dimension = None
+            ingest_embedding_dimension = None
 
-        vector_db_options = sorted(get_args(_VECTOR_DB))
-        vector_db = st.selectbox(
+        ingest_vector_db = st.selectbox(
             label="Vector DB",
-            options=vector_db_options,
-            key="vector_db",
-            index=vector_db_options.index(initial_config["vector_db"]),
+            options=sorted(get_args(_VECTOR_DB)),
+            key="ingest_vector_db",
         )
 
-        index_name = st.text_input(
+        ingest_index_name = st.text_input(
             label="Vector Index Name",
-            key="index_name",
-            value=initial_config["index_name"],
+            key="ingest_index_name",
         )
 
-        if vector_db == "elasticsearch" or vector_db == "qdrant":
-            hybrid_search = st.toggle(
+        if is_hybrid_search(ingest_vector_db):
+            ingest_sparse_model = st.selectbox(
+                label="Sparse Model",
+                options=sorted(get_args(_SPARSE_MODEL_TYPES)),
+                key="ingest_sparse_model",
+            )
+            ingest_hybrid_search = st.toggle(
                 label="Hybrid Search",
-                key="hybrid_search",
-                value=initial_config["hybrid_search"],
+                key="ingest_hybrid_search",
             )
         else:
-            hybrid_search = False
+            ingest_hybrid_search = False
 
         ingest_data_button = st.button(label="Ingest Data", key="ingest_data_button")
 
@@ -259,10 +341,10 @@ with st.sidebar:
             with st.spinner("Crawling..."):
                 start_time = time.time()
                 urls = crawl(
-                    start_url=link_to_crawl,
-                    crawling_method=crawling_method,
-                    max_depth=max_crawl_depth,
-                    ignore_list=ignore_urls.split(","),
+                    start_url=session.initial_url,
+                    crawling_method=session.crawling_method,
+                    max_depth=session.max_depth,
+                    ignore_list=session.ignore_urls.split(","),
                 )
                 elapsed_time = time.time() - start_time
             st.success(f"Crawling Finised. {elapsed_time}s")
@@ -271,14 +353,23 @@ with st.sidebar:
                 start_time = time.time()
                 ingest_data(
                     urls=urls,
-                    embedding_model=embedding_model,
-                    index_name=index_name,
-                    dimension=embedding_dimension,
-                    vector_db=vector_db,
-                    chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap,
-                    hybrid_search=hybrid_search,
+                    embedding_model=session.ingest_embedding_model,
+                    index_name=session.ingest_index_name,
+                    dimension=session.ingest_dimension,
+                    vector_db=session.ingest_vector_db,
+                    chunk_size=session.chunk_size,
+                    chunk_overlap=session.chunk_overlap,
+                    hybrid_search=session.ingest_hybrid_search,
+                    **{"sparse_model": session.ingest_sparse_model},
                 )
+
+                session.embedding_model = session.ingest_embedding_model
+                session.index_name = session.ingest_index_name
+                session.dimension = session.ingest_dimension
+                session.vector_db = session.ingest_vector_db
+                session.hybrid_search = session.ingest_hybrid_search
+                session.sparse_model = session.ingest_sparse_model
+
                 elapsed_time = time.time() - start_time
             st.success(f"Ingesting Finised. {elapsed_time}s")
 
@@ -286,55 +377,48 @@ with st.sidebar:
     with st.container(border=True):
         st.title("Retriever Config")
 
-        embedding_options = sorted(get_args(_EMBEDDING_TYPES))
-        retriever_embedding_model = st.selectbox(
+        embedding_model = st.selectbox(
             label="Embedding Model",
-            options=embedding_options,
-            key="retriever_embedding_model",
-            index=embedding_options.index(initial_config["embedding"]),
+            options=sorted(get_args(_EMBEDDING_TYPES)),
+            key="embedding_model",
         )
 
-        if (
-            retriever_embedding_model == "text-embedding-3-large"
-            or retriever_embedding_model == "text-embedding-3-small"
-        ):
-            retriever_embedding_dimension = st.number_input(
-                label="Embedding Dimension",
-                key="retriever_embedding_dimension",
-                value=initial_config["dimension"],
+        if dimension_available(embedding_model):
+            embedding_dimension = st.number_input(
+                label="Embedding Dimension", key="dimension", min_value=0
             )
         else:
-            retriever_embedding_dimension = None
+            embedding_dimension = None
 
-        vector_db_options = sorted(get_args(_VECTOR_DB))
-        retriever_vector_db = st.selectbox(
+        vector_db = st.selectbox(
             label="Vector DB",
-            options=vector_db_options,
-            key="retriever_vector_db",
-            index=vector_db_options.index(initial_config["vector_db"]),
+            options=sorted(get_args(_VECTOR_DB)),
+            key="vector_db",
         )
 
-        retriever_index_name = st.text_input(
+        index_name = st.text_input(
             label="Vector Index Name",
-            key="retriever_index_name",
-            value=initial_config["index_name"],
+            key="index_name",
         )
 
-        if retriever_vector_db == "elasticsearch" or retriever_vector_db == "qdrant":
-            retriever_hybrid_search = st.toggle(
+        if is_hybrid_search(vector_db):
+            hybrid_search = st.toggle(
                 label="Hybrid Search",
-                key="retriever_hybrid_search",
-                value=initial_config["hybrid_search"],
+                key="hybrid_search",
+            )
+            sparse_model = st.selectbox(
+                label="Sparse Model",
+                options=sorted(get_args(_SPARSE_MODEL_TYPES)),
+                key="sparse_model",
             )
         else:
-            retriever_hybrid_search = False
+            hybrid_search = False
 
         top_k = st.slider(
             label="Top_K",
             min_value=1,
             max_value=20,
             key="top_k",
-            value=initial_config["top_k"],
         )
 
         score_threshold = st.slider(
@@ -342,61 +426,49 @@ with st.sidebar:
             min_value=0.01,
             max_value=0.99,
             key="score_threshold",
-            value=initial_config["score_threshold"],
         )
 
-        toggle_reranker = st.toggle(
-            label="Use Reranker", key="toggle_reranker", value=True
-        )
+        use_reranker = st.toggle(label="Use Reranker", key="use_reranker")
 
-        if toggle_reranker:
-            reranker_options = sorted(get_args(_RERANKER_TYPES))
+        if use_reranker:
             reranker_model = st.selectbox(
                 label="Reranker",
-                options=reranker_options,
+                options=sorted(get_args(_RERANKER_TYPES)),
                 key="reranker_model",
-                index=reranker_options.index(initial_config["reranker"]),
             )
 
         update_retriever = st.button(label="Update Retriever", key="update_retriever")
+
         if update_retriever:
             with st.spinner("Updating Retriever..."):
-                st.session_state.retriever = get_retriever(
-                    index_name=retriever_index_name,
-                    embedding_model=retriever_embedding_model,
-                    dimension=retriever_embedding_dimension,
-                    vector_db=retriever_vector_db,
-                    hybrid_search=retriever_hybrid_search,
-                    top_k=top_k,
-                    score_threshold=score_threshold,
+                session.retriever = get_retriever(
+                    index_name=session.index_name,
+                    embedding_model=session.embedding_model,
+                    dimension=session.dimension,
+                    vector_db=session.vector_db,
+                    hybrid_search=session.hybrid_search,
+                    top_k=session.top_k,
+                    score_threshold=session.score_threshold,
+                    **{"sparse_model": session.sparse_model},
                 )
-                if toggle_reranker:
-                    st.session_state.reranker = get_reranker(
-                        base_retriever=st.session_state.retriever,
-                        model_name=reranker_model,
-                        top_k=top_k,
+
+                if use_reranker:
+                    session.reranker = get_reranker(
+                        base_retriever=session.retriever,
+                        model_name=session.reranker_model,
+                        top_k=session.top_k,
                     )
-                st.session_state.chain = create_conversational_retrieval_chain(
-                    llm=st.session_state.llm,
-                    retriever=(
-                        st.session_state.reranker
-                        if toggle_reranker
-                        else st.session_state.retriever
-                    ),
-                    instruction=st.session_state.instruction,
-                )
+                get_chain()
             st.success("Retriever Updated.")
 
     # LLM Config
     with st.container(border=True):
         st.title("LLM Config")
 
-        llm_options = sorted(get_args(_LLM_TYPES))
         chat_model = st.selectbox(
             label="Chat Model",
-            options=llm_options,
+            options=sorted(get_args(_LLM_TYPES)),
             key="chat_model",
-            index=llm_options.index(initial_config["llm"]),
         )
 
         top_p = st.slider(
@@ -405,33 +477,26 @@ with st.sidebar:
             max_value=0.9,
             step=0.1,
             key="top_p",
-            value=initial_config["top_p"],
         )
+
         temperature = st.slider(
             label="Temperature",
             min_value=0.1,
             max_value=0.9,
             step=0.1,
             key="temperature",
-            value=initial_config["temperature"],
         )
 
         update_llm = st.button(label="Update LLM", key="update_llm")
 
         if update_llm:
             with st.spinner("Updating LLM..."):
-                st.session_state.llm = get_llm(
-                    model_name=chat_model, temperature=temperature, top_p=top_p
+                session.llm = get_llm(
+                    model_name=session.chat_model,
+                    temperature=session.temperature,
+                    top_p=session.top_p,
                 )
-                st.session_state.chain = create_conversational_retrieval_chain(
-                    llm=st.session_state.llm,
-                    retriever=(
-                        st.session_state.reranker
-                        if toggle_reranker
-                        else st.session_state.retriever
-                    ),
-                    instruction=st.session_state.instruction,
-                )
+                get_chain()
             st.success("LLM Updated.")
 
     # Instruction Config
@@ -450,13 +515,5 @@ with st.sidebar:
 
         if update_instruction:
             with st.spinner("Updating Instruction..."):
-                st.session_state.chain = create_conversational_retrieval_chain(
-                    llm=st.session_state.llm,
-                    retriever=(
-                        st.session_state.reranker
-                        if toggle_reranker
-                        else st.session_state.retriever
-                    ),
-                    instruction=st.session_state.instruction,
-                )
+                get_chain()
             st.success("Instruction Updated.")

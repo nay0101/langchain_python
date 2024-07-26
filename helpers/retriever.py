@@ -12,6 +12,7 @@ def get_retriever(
     top_k: int = 4,
     score_threshold: float = 0.01,
     hybrid_search: bool = False,
+    **kwargs
 ) -> RetrieverLike:
     vector_store = get_vector_store_instance(
         embedding_model=embedding_model,
@@ -19,6 +20,7 @@ def get_retriever(
         dimension=dimension,
         vector_db=vector_db,
         hybrid_search=hybrid_search,
+        **kwargs,
     )
 
     retriever = vector_store.as_retriever(

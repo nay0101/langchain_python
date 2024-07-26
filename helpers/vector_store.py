@@ -12,7 +12,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing import List, Dict, get_args, Optional, Any
 from langchain_core.vectorstores.base import VectorStore
 import chromadb
-from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES
+from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES, _SPARSE_MODEL_TYPES
 from .embedding_models import get_embedding_model
 from .config import Config
 
@@ -23,6 +23,7 @@ def get_vector_store_instance(
     dimension: Optional[int] = None,
     vector_db: _VECTOR_DB = "chromadb",
     hybrid_search: bool = False,
+    **kwargs
 ) -> VectorStore:
     embedding = get_embedding_model(embedding_model, dimension)
 
@@ -46,12 +47,16 @@ def get_vector_store_instance(
         )
     # Not for Developement, Still in testing
     elif vector_db == options["qdrant"]:
+
+        sparse_model: _SPARSE_MODEL_TYPES = kwargs.get("sparse_model", "Qdrant/bm25")
         vector_store = QdrantVectorStore.construct_instance(
             client_options={"api_key": Config.QDRANT_API_KEY, "url": Config.QDRANT_URL},
             embedding=embedding,
             collection_name=index_name,
             vector_name="vectors",
-            sparse_embedding=FastEmbedSparse() if hybrid_search else None,
+            sparse_embedding=(
+                FastEmbedSparse(model_name=sparse_model) if hybrid_search else None
+            ),
             retrieval_mode=(
                 RetrievalMode.HYBRID if hybrid_search else RetrievalMode.DENSE
             ),
@@ -71,6 +76,7 @@ def ingest_data(
     chunk_size: int = 2000,
     chunk_overlap: int = 200,
     hybrid_search: bool = False,
+    **kwargs
 ) -> Dict[str, Any]:
     loader = WebBaseLoader(web_path=urls, requests_per_second=3)
     data = loader.load()
@@ -84,6 +90,7 @@ def ingest_data(
         dimension=dimension,
         vector_db=vector_db,
         hybrid_search=hybrid_search,
+        **kwargs,
     )
     vector_store.add_documents(docs)
 

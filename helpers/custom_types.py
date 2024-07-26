@@ -33,6 +33,12 @@ _RERANKER_TYPES = Literal[
 
 _CRAWLING_TYPES = Literal["crawl_child_urls", "crawl_all_urls"]
 
+_SPARSE_MODEL_TYPES = Literal[
+    "Qdrant/bm25",
+    "Qdrant/bm42-all-minilm-l6-v2-attentions",
+    "prithivida/Splade_PP_en_v1",
+]
+
 
 class _LangfuseArgs(TypedDict):
     session_id: Optional[str]
@@ -64,6 +70,7 @@ __all__ = [
     "_EMBEDDING_TYPES",
     "_RERANKER_TYPES",
     "_CRAWLING_TYPES",
+    "_SPARSE_MODEL_TYPES",
     "_LangfuseArgs",
     "_ChainResult",
 ]
