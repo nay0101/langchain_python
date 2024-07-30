@@ -1,9 +1,7 @@
 from langchain_elasticsearch import (
     ElasticsearchStore,
     DenseVectorStrategy,
-)
-from langchain_elasticsearch import (
-    ElasticsearchStore,
+    SparseVectorStrategy,
 )
 from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from langchain_chroma import Chroma
@@ -11,6 +9,7 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing import List, Dict, get_args, Optional, Any
 from langchain_core.vectorstores.base import VectorStore
+from langchain.retrievers import EnsembleRetriever
 import chromadb
 from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES, _SPARSE_MODEL_TYPES
 from .embedding_models import get_embedding_model
@@ -23,7 +22,7 @@ def get_vector_store_instance(
     dimension: Optional[int] = None,
     vector_db: _VECTOR_DB = "chromadb",
     hybrid_search: bool = False,
-    **kwargs
+    **kwargs,
 ) -> VectorStore:
     embedding = get_embedding_model(embedding_model, dimension)
 
@@ -38,13 +37,35 @@ def get_vector_store_instance(
             embedding_function=embedding,
         )
     elif vector_db == options["elasticsearch"]:
-        vector_store = ElasticsearchStore(
-            es_cloud_id=Config.ELASTIC_CLOUD_ID,
-            es_api_key=Config.ELASTIC_API_KEY,
-            embedding=embedding,
-            index_name=index_name,
-            strategy=DenseVectorStrategy(hybrid=hybrid_search),
-        )
+        # Testing
+        hybrid_search_type = kwargs.get("hybrid_search_type", "default")
+
+        if hybrid_search_type == "default":
+            vector_store = ElasticsearchStore(
+                es_cloud_id=Config.ELASTIC_CLOUD_ID,
+                es_api_key=Config.ELASTIC_API_KEY,
+                embedding=embedding,
+                index_name=index_name,
+                strategy=DenseVectorStrategy(
+                    hybrid=hybrid_search,
+                ),
+            )
+        elif hybrid_search_type == "sparse_hybrid":
+            dense_vector_store = ElasticsearchStore(
+                es_cloud_id=Config.ELASTIC_CLOUD_ID,
+                es_api_key=Config.ELASTIC_API_KEY,
+                embedding=embedding,
+                index_name=index_name,
+                strategy=DenseVectorStrategy(hybrid=False),
+            )
+            sparse_vector_store = ElasticsearchStore(
+                es_cloud_id=Config.ELASTIC_CLOUD_ID,
+                es_api_key=Config.ELASTIC_API_KEY,
+                index_name=f"{index_name}_sparse",
+                strategy=SparseVectorStrategy(model_id=".elser_model_2"),
+            )
+            vector_store = [dense_vector_store, sparse_vector_store]
+
     # Not for Developement, Still in testing
     elif vector_db == options["qdrant"]:
 
@@ -76,7 +97,7 @@ def ingest_data(
     chunk_size: int = 2000,
     chunk_overlap: int = 200,
     hybrid_search: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Dict[str, Any]:
     loader = WebBaseLoader(web_path=urls, requests_per_second=3)
     data = loader.load()
@@ -92,7 +113,17 @@ def ingest_data(
         hybrid_search=hybrid_search,
         **kwargs,
     )
-    vector_store.add_documents(docs)
+
+    hybrid_search_type = kwargs.get("hybrid_search_type", "default")
+
+    if hybrid_search_type == "default":
+        vector_store.add_documents(docs)
+    elif hybrid_search_type == "sparse_hybrid":
+        vector_store[0].add_documents(docs)
+        vector_store[1].add_documents(
+            docs,
+            bulk_kwargs={"request_timeout": 60},
+        )
 
     return {
         "index_name": index_name,

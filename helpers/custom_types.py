@@ -37,6 +37,7 @@ _SPARSE_MODEL_TYPES = Literal[
     "Qdrant/bm25",
     "Qdrant/bm42-all-minilm-l6-v2-attentions",
     "prithivida/Splade_PP_en_v1",
+    ".elser_model_2",
 ]
 
 

@@ -10,7 +10,6 @@ from helpers import (
     crawl,
     ingest_data,
 )
-from helpers.test_data import get_questions
 from helpers.custom_types import (
     _LLM_TYPES,
     _EMBEDDING_TYPES,
@@ -28,14 +27,17 @@ initial_config = {
     "ingest_embedding_model": "text-embedding-3-large",
     "dimension": 256,
     "ingest_dimension": 256,
-    "vector_db": "qdrant",
-    "ingest_vector_db": "qdrant",
-    "index_name": "qdrant_hybrid_test_1",
-    "ingest_index_name": "qdrant_hybrid_test_1",
+    "vector_db": "elasticsearch",
+    "ingest_vector_db": "elasticsearch",
+    "index_name": "elastic_hybrid_search",
+    "ingest_index_name": "elastic_hybrid_search",
     "hybrid_search": True,
     "ingest_hybrid_search": True,
-    "sparse_model": "Qdrant/bm25",
-    "ingest_sparse_model": "Qdrant/bm25",
+    "hybrid_search_type": "default",
+    "ingest_hybrid_search_type": "default",
+    "sparse_model": ".elser_model_2",
+    "ingest_sparse_model": ".elser_model_2",
+    "weight": 0.5,
     "top_k": 5,
     "top_p": 0.9,
     "temperature": 0.1,
@@ -70,6 +72,10 @@ def dimension_available(embedding_model):
         embedding_model == "text-embedding-3-large"
         or embedding_model == "text-embedding-3-small"
     )
+
+
+def add_prefix(prefix, key):
+    return f"{prefix}_" + key if prefix else key
 
 
 def is_hybrid_search(vector_db):
@@ -157,6 +163,7 @@ st.title("Chat")
 if "messages" not in session:
     session.messages = []
 
+
 # Display chat messages from history on app rerun
 for message in session.messages:
     with st.chat_message(message["role"]):
@@ -170,27 +177,28 @@ for message in session.messages:
                 st.text(
                     f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
                 )
-            with right:
-                save_response_button = st.button(
-                    label="Save Response",
-                    key=f"save_response_button_{session.messages.index(message)}",
-                )
+            # with right:
+            #     save_response_button = st.button(
+            #         label="Save Response",
+            #         key=f"save_response_button_{session.messages.index(message)}",
+            #     )
 
-            if save_response_button:
-                with st.spinner("Saving..."):
-                    save_file_path = (
-                        f"./responses/{session.index_name}_{session.vector_db}.txt"
-                    )
+            # if save_response_button:
+            #     with st.spinner("Saving..."):
+            #         save_file_path = (
+            #             f"./responses/{session.index_name}_{session.vector_db}.txt"
+            #         )
 
-                    save_response(
-                        path=save_file_path,
-                        question=session.messages[session.messages.index(message) - 1][
-                            "content"
-                        ],
-                        answer=response,
-                        context=context,
-                    )
-                st.success("Response Saved.")
+            #         save_response(
+            #             path=save_file_path,
+            #             question=session.messages[session.messages.index(message) - 1][
+            #                 "content"
+            #             ],
+            #             answer=response,
+            #             context=context,
+            #         )
+            #     st.success("Response Saved.")
+
             st.text(f"Sources:")
             for i in range(0, len(context)):
                 with st.popover(f"{context[i][1]}"):
@@ -217,25 +225,25 @@ if prompt := st.chat_input("Enter you message..."):
             st.text(
                 f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
             )
-        with right:
-            save_response_button = st.button(
-                label="Save Response",
-                key=f"save_response_button_{len(session.messages)}",
-            )
+        # with right:
+        #     save_response_button = st.button(
+        #         label="Save Response",
+        #         key=f"save_response_button_{len(session.messages)}",
+        #     )
 
-            if save_response_button:
-                with st.spinner("Saving..."):
-                    save_file_path = (
-                        f"./responses/{session.index_name}_{session.vector_db}.txt"
-                    )
+        #     if save_response_button:
+        #         with st.spinner("Saving..."):
+        #             save_file_path = (
+        #                 f"./responses/{session.index_name}_{session.vector_db}.txt"
+        #             )
 
-                    save_response(
-                        path=save_file_path,
-                        question=prompt,
-                        answer=response,
-                        context=context,
-                    )
-                st.success("Response Saved.")
+        #             save_response(
+        #                 path=save_file_path,
+        #                 question=prompt,
+        #                 answer=response,
+        #                 context=context,
+        #             )
+        #         st.success("Response Saved.")
 
         st.text(f"Sources:")
         for i in range(0, len(context)):
@@ -253,6 +261,60 @@ if prompt := st.chat_input("Enter you message..."):
             },
         }
     )
+
+
+def common_ui_configs(prefix=""):
+    embedding_model = st.selectbox(
+        label="Embedding Model",
+        options=sorted(get_args(_EMBEDDING_TYPES)),
+        key=add_prefix(prefix, "embedding_model"),
+    )
+
+    if dimension_available(embedding_model):
+        embedding_dimension = st.number_input(
+            label="Embedding Dimension",
+            key=add_prefix(prefix, "dimension"),
+            min_value=0,
+        )
+
+    vector_db = st.selectbox(
+        label="Vector DB",
+        options=sorted(get_args(_VECTOR_DB)),
+        key=add_prefix(prefix, "vector_db"),
+    )
+
+    index_name = st.text_input(
+        label="Vector Index Name",
+        key=add_prefix(prefix, "index_name"),
+    )
+
+    if is_hybrid_search(vector_db):
+        hybrid_search = st.toggle(
+            label="Hybrid Search",
+            key=add_prefix(prefix, "hybrid_search"),
+        )
+        if hybrid_search:
+            if vector_db == "elasticsearch":
+                hybrid_search_type = st.selectbox(
+                    label="Hybrid Search Type",
+                    options=["default", "sparse_hybrid"],
+                    key=add_prefix(prefix, "hybrid_search_type"),
+                )
+            if hybrid_search_type is not "default":
+                sparse_model = st.selectbox(
+                    label="Sparse Model",
+                    options=sorted(get_args(_SPARSE_MODEL_TYPES)),
+                    key=add_prefix(prefix, "sparse_model"),
+                )
+                # weight = st.slider(
+                #     label="Weight for Dense Retriever",
+                #     min_value=0.1,
+                #     max_value=0.9,
+                #     step=0.1,
+                #     value=0.5,
+                #     key="weight",
+                # )
+
 
 with st.sidebar:
     # Data Source
@@ -298,42 +360,7 @@ with st.sidebar:
             key="chunk_overlap",
         )
 
-        ingest_embedding_model = st.selectbox(
-            label="Embedding Model",
-            options=sorted(get_args(_EMBEDDING_TYPES)),
-            key="ingest_embedding_model",
-        )
-
-        if dimension_available(ingest_embedding_model):
-            ingest_embedding_dimension = st.number_input(
-                label="Embedding Model Dimension", key="ingest_dimension", min_value=0
-            )
-        else:
-            ingest_embedding_dimension = None
-
-        ingest_vector_db = st.selectbox(
-            label="Vector DB",
-            options=sorted(get_args(_VECTOR_DB)),
-            key="ingest_vector_db",
-        )
-
-        ingest_index_name = st.text_input(
-            label="Vector Index Name",
-            key="ingest_index_name",
-        )
-
-        if is_hybrid_search(ingest_vector_db):
-            ingest_sparse_model = st.selectbox(
-                label="Sparse Model",
-                options=sorted(get_args(_SPARSE_MODEL_TYPES)),
-                key="ingest_sparse_model",
-            )
-            ingest_hybrid_search = st.toggle(
-                label="Hybrid Search",
-                key="ingest_hybrid_search",
-            )
-        else:
-            ingest_hybrid_search = False
+        common_ui_configs(prefix="ingest")
 
         ingest_data_button = st.button(label="Ingest Data", key="ingest_data_button")
 
@@ -360,7 +387,10 @@ with st.sidebar:
                     chunk_size=session.chunk_size,
                     chunk_overlap=session.chunk_overlap,
                     hybrid_search=session.ingest_hybrid_search,
-                    **{"sparse_model": session.ingest_sparse_model},
+                    **{
+                        "sparse_model": session.ingest_sparse_model,
+                        "hybrid_search_type": session.ingest_hybrid_search_type,
+                    },
                 )
 
                 session.embedding_model = session.ingest_embedding_model
@@ -369,6 +399,7 @@ with st.sidebar:
                 session.vector_db = session.ingest_vector_db
                 session.hybrid_search = session.ingest_hybrid_search
                 session.sparse_model = session.ingest_sparse_model
+                session.hybrid_search_type = session.ingest_hybrid_search_type
 
                 elapsed_time = time.time() - start_time
             st.success(f"Ingesting Finised. {elapsed_time}s")
@@ -377,42 +408,7 @@ with st.sidebar:
     with st.container(border=True):
         st.title("Retriever Config")
 
-        embedding_model = st.selectbox(
-            label="Embedding Model",
-            options=sorted(get_args(_EMBEDDING_TYPES)),
-            key="embedding_model",
-        )
-
-        if dimension_available(embedding_model):
-            embedding_dimension = st.number_input(
-                label="Embedding Dimension", key="dimension", min_value=0
-            )
-        else:
-            embedding_dimension = None
-
-        vector_db = st.selectbox(
-            label="Vector DB",
-            options=sorted(get_args(_VECTOR_DB)),
-            key="vector_db",
-        )
-
-        index_name = st.text_input(
-            label="Vector Index Name",
-            key="index_name",
-        )
-
-        if is_hybrid_search(vector_db):
-            hybrid_search = st.toggle(
-                label="Hybrid Search",
-                key="hybrid_search",
-            )
-            sparse_model = st.selectbox(
-                label="Sparse Model",
-                options=sorted(get_args(_SPARSE_MODEL_TYPES)),
-                key="sparse_model",
-            )
-        else:
-            hybrid_search = False
+        common_ui_configs()
 
         top_k = st.slider(
             label="Top_K",
@@ -449,7 +445,10 @@ with st.sidebar:
                     hybrid_search=session.hybrid_search,
                     top_k=session.top_k,
                     score_threshold=session.score_threshold,
-                    **{"sparse_model": session.sparse_model},
+                    **{
+                        "sparse_model": session.sparse_model,
+                        "hybrid_search_type": session.hybrid_search_type,
+                    },
                 )
 
                 if use_reranker:
