@@ -5,6 +5,7 @@ _VENDORS = {
     "anthropic": "anthropic",
     "cohere": "cohere",
     "fastembed": "fastembed",
+    "elasticsearch": "elasticsearch",
 }
 
 _EMBEDDING_MODELS = {
@@ -41,6 +42,7 @@ _SPARSE_MODELS = {
     "Qdrant/bm25": _VENDORS["fastembed"],
     "Qdrant/bm42-all-minilm-l6-v2-attentions": _VENDORS["fastembed"],
     "prithivida/Splade_PP_en_v1": _VENDORS["fastembed"],
+    ".elser_model_2": _VENDORS["elasticsearch"],
 }
 
 __all__ = ["_VENDORS", "_EMBEDDING_MODELS", "_LLMS", "_RERANKERS", "_SPARSE_MODELS"]

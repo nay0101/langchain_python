@@ -17,6 +17,7 @@ from helpers.custom_types import (
     _CRAWLING_TYPES,
     _RERANKER_TYPES,
     _SPARSE_MODEL_TYPES,
+    _ELASTIC_HYBRID_SEARCH_TYPES,
 )
 from typing import get_args
 import math
@@ -33,8 +34,8 @@ initial_config = {
     "ingest_index_name": "elastic_hybrid_search",
     "hybrid_search": True,
     "ingest_hybrid_search": True,
-    "hybrid_search_type": "default",
-    "ingest_hybrid_search_type": "default",
+    "hybrid_search_type": "dense_keyword",
+    "ingest_hybrid_search_type": "dense_keyword",
     "sparse_model": ".elser_model_2",
     "ingest_sparse_model": ".elser_model_2",
     "weight": 0.5,
@@ -297,23 +298,15 @@ def common_ui_configs(prefix=""):
             if vector_db == "elasticsearch":
                 hybrid_search_type = st.selectbox(
                     label="Hybrid Search Type",
-                    options=["default", "sparse_hybrid"],
+                    options=sorted(get_args(_ELASTIC_HYBRID_SEARCH_TYPES)),
                     key=add_prefix(prefix, "hybrid_search_type"),
                 )
-            if hybrid_search_type is not "default":
+            if hybrid_search_type != "dense_keyword":
                 sparse_model = st.selectbox(
                     label="Sparse Model",
                     options=sorted(get_args(_SPARSE_MODEL_TYPES)),
                     key=add_prefix(prefix, "sparse_model"),
                 )
-                # weight = st.slider(
-                #     label="Weight for Dense Retriever",
-                #     min_value=0.1,
-                #     max_value=0.9,
-                #     step=0.1,
-                #     value=0.5,
-                #     key="weight",
-                # )
 
 
 with st.sidebar:

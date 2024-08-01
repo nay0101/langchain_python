@@ -40,6 +40,10 @@ _SPARSE_MODEL_TYPES = Literal[
     ".elser_model_2",
 ]
 
+_ELASTIC_HYBRID_SEARCH_TYPES = Literal[
+    "dense_keyword", "dense_sparse", "sparse_keyword"
+]
+
 
 class _LangfuseArgs(TypedDict):
     session_id: Optional[str]
@@ -72,6 +76,7 @@ __all__ = [
     "_RERANKER_TYPES",
     "_CRAWLING_TYPES",
     "_SPARSE_MODEL_TYPES",
+    "_ELASTIC_HYBRID_SEARCH_TYPES",
     "_LangfuseArgs",
     "_ChainResult",
 ]
