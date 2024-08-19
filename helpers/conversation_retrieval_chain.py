@@ -11,6 +11,7 @@ from .custom_types import _LangfuseArgs, _ChainResult
 from .config import Config
 from langchain_core.outputs import LLMResult
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain_community.callbacks.manager import get_openai_callback
 
 
 class LLMResultHandler(BaseCallbackHandler):

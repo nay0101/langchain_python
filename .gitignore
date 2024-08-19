@@ -1,6 +1,8 @@
-*env  
+*env
 chroma
 *cache*
 *log
 old*
 db_path
+test_codes
+uploaded_files
