@@ -1,4 +1,4 @@
-from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES, _ELASTIC_HYBRID_SEARCH_TYPES
+from .custom_types import _VECTOR_DB, _EMBEDDING_TYPES, _HYBRID_SEARCH_TYPES
 from typing import Optional, Dict
 from langchain_core.retrievers import RetrieverLike
 from langchain.retrievers import EnsembleRetriever
@@ -51,11 +51,11 @@ def get_retriever(
                 "rank": {"rrf": {}},
             }
 
-        hybrid_search_type: _ELASTIC_HYBRID_SEARCH_TYPES = kwargs.get(
-            "hybrid_search_type", "dense_keyword"
+        hybrid_search_type: _HYBRID_SEARCH_TYPES = kwargs.get(
+            "hybrid_search_type", None
         )
 
-        if hybrid_search_type == "dense_keyword":
+        if hybrid_search_type is None or hybrid_search_type == "dense_keyword":
             retriever = vector_store.as_retriever(
                 search_type="similarity",
                 search_kwargs={"k": top_k},

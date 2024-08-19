@@ -11,6 +11,7 @@ from .custom_types import _LangfuseArgs, _ChainResult
 from .config import Config
 from langchain_core.outputs import LLMResult
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain_community.callbacks.manager import get_openai_callback
 
 
 class LLMResultHandler(BaseCallbackHandler):
@@ -93,18 +94,19 @@ def invoke_conversational_retrieval_chain(
             )
         },
     )
-    answer = result["answer"]
-    # source_documents = [
-    #     {"page_content": doc.page_content, "source": doc.metadata["source"]}
-    #     for doc in result["context"]
-    # ]
 
-    # token_usage = llm_result_handler.response
+    answer = result["answer"]
+    source_documents = [
+        {"page_content": doc.page_content, "source": doc.metadata["source"]}
+        for doc in result["context"]
+    ]
+
+    token_usage = llm_result_handler.response
 
     output = {
         "answer": answer,
-        "source_documents": "",
-        "token_usage": "",
+        "source_documents": source_documents,
+        "token_usage": token_usage,
     }
 
     if langfuse_handler:

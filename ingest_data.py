@@ -12,8 +12,8 @@ urls = crawl(
 result = ingest_data(
     urls=urls,
     embedding_model="text-embedding-3-large",
-    index_name="qdrant_test",
-    vector_db="qdrant",
+    index_name="new_chroma",
+    vector_db="chromadb",
     dimension=256,
     hybrid_search=True,
 )

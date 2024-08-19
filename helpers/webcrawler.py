@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import Set, List, Optional
 from .custom_types import _CRAWLING_TYPES
+from langchain_community.document_loaders import WebBaseLoader
 
 
 def get_page_content(url: str) -> Optional[str]:
@@ -74,7 +75,7 @@ def crawl(
     start_url: str,
     crawling_method: _CRAWLING_TYPES = "crawl_child_urls",
     max_depth: int = 3,
-    ignore_list: List[str] = [],
+    ignore_list: Optional[List[str]] = None,
 ) -> List[str]:
     """
     Crawl links within the same domain as the starting URL up to a maximum depth.
@@ -89,6 +90,8 @@ def crawl(
     visited = set()
     to_visit = [(start_url, 0)]
     start_domain = urlparse(start_url).netloc
+    if ignore_list is None:
+        ignore_list = []
 
     while to_visit:
         current_url, depth = to_visit.pop(0)
@@ -115,4 +118,6 @@ def crawl(
                 if link not in visited and urlparse(link).netloc == start_domain:
                     to_visit.append((link, depth + 1))
 
-    return list(visited)
+    loader = WebBaseLoader(web_path=list(visited), requests_per_second=3)
+    data = loader.load()
+    return data
