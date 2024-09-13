@@ -122,6 +122,7 @@ def ingest_data(
         docs = text_splitter.split_documents(documents)
     else:
         docs = documents
+
     vector_store = get_vector_store_instance(
         embedding_model=embedding_model,
         index_name=index_name,

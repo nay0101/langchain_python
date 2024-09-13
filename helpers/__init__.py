@@ -1,6 +1,8 @@
 from helpers.conversation_retrieval_chain import (
     create_conversational_retrieval_chain,
     invoke_conversational_retrieval_chain,
+    custom_chain,
+    custom_invoke,
 )
 
 from helpers.llms import get_llm
@@ -15,7 +17,9 @@ from helpers.vector_store import get_vector_store_instance, ingest_data
 
 from helpers.webcrawler import crawl
 
-from helpers.fileloaders import loadCSV, loadExcel
+from helpers.fileloaders import load_csv, load_excel
+
+from helpers.sql_store import ingest_sql
 
 __all__ = [
     "create_conversational_retrieval_chain",
@@ -27,6 +31,9 @@ __all__ = [
     "get_vector_store_instance",
     "ingest_data",
     "crawl",
-    "loadCSV",
-    "loadExcel",
+    "load_csv",
+    "load_excel",
+    "ingest_sql",
+    "custom_chain",
+    "custom_invoke",
 ]

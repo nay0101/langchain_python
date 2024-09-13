@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 
 
 def get_agent():
-    df = pd.read_excel("./organizations_excel.xlsx")
+    df = pd.read_excel("./organizations_excel.xlsx", sheet_name=None)
     model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     agent = create_pandas_dataframe_agent(
         llm=model,

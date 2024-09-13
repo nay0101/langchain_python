@@ -23,8 +23,8 @@ def get_llm(
             model=model_name,
             temperature=temperature,
             api_key=Config.OPENAI_API_KEY,
-            model_kwargs={"top_p": top_p},
             max_retries=0,
+            top_p=top_p,
         )
     elif llm_vendor == _VENDORS["googlegenai"]:
         llm = ChatGoogleGenerativeAI(

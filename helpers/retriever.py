@@ -38,6 +38,16 @@ def get_retriever(
             )  # same embeddings as for indexing
             return {
                 "query": {
+                    "sparse_vector": {
+                        "field": "vector.tokens",
+                        "inference_id": ".elser_model_2",
+                        "query": search_query,
+                    }
+                },
+                "size": 2,
+            }
+            return {
+                "query": {
                     "match": {
                         "text": search_query,
                     },

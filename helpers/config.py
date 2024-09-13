@@ -17,3 +17,4 @@ class Config:
     LANGFUSE_BASEURL: str | None = os.getenv("LANGFUSE_BASEURL")
     QDRANT_API_KEY: str | None = os.getenv("QDRANT_API_KEY")
     QDRANT_URL: str | None = os.getenv("QDRANT_URL")
+    POSTGRES_CONNECTION_STRING: str | None = os.getenv("POSTGRES_CONNECTION_STRING")

@@ -2,22 +2,23 @@ from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_community.document_loaders import UnstructuredExcelLoader
 from langchain_core.documents import Document
 from typing import List
-import nltk
 
 
-def loadCSV(path: str) -> List[Document]:
+def load_csv(path: str) -> List[Document]:
     loader = CSVLoader(file_path=path)
     docs = loader.load()
     return docs
 
 
-def loadExcel(path: str) -> List[Document]:
-    nltk.download("punkt_tab")
-    loader = UnstructuredExcelLoader(file_path=path)
+def load_excel(path: str) -> List[Document]:
+    loader = UnstructuredExcelLoader(file_path=path, mode="elements")
     data = loader.load()
+    print(data)
     docs = []
     for doc in data:
-        metadata = doc.metadata
+        metadata = {
+            "source": f'Page: {doc.metadata["page_name"]} - {doc.metadata["source"]}'
+        }
         rows = list(filter(None, doc.page_content.split("\n\n\n")))
         headers = rows.pop(0).split("\n")
         for row in rows:

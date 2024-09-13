@@ -2,15 +2,14 @@ import streamlit as st
 from streamlit import session_state as session
 import time
 from helpers import (
-    invoke_conversational_retrieval_chain,
-    create_conversational_retrieval_chain,
+    custom_invoke,
+    custom_chain,
     get_llm,
     get_retriever,
     get_reranker,
     crawl,
     ingest_data,
-    load_csv,
-    load_excel,
+    ingest_sql,
 )
 from helpers.custom_types import (
     _LLM_TYPES,
@@ -25,7 +24,6 @@ from helpers.custom_types import (
 from typing import get_args
 import math
 import uuid
-from helpers import ingest_sql
 
 initial_config = {
     "chat_model": "gpt-4o-mini",
@@ -60,6 +58,7 @@ for key, value in initial_config.items():
 
 data_ingest_config = {
     "data_type": "File",
+    "file_description": None,
     "initial_url": "https://win066.wixsite.com/brillar-bank",
     "ignore_urls": "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-1,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-2,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-3,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-4,",
     "crawling_method": "crawl_child_urls",
@@ -121,7 +120,7 @@ def initialize_components():
 
 
 def get_chain():
-    session.chain = create_conversational_retrieval_chain(
+    session.chain = custom_chain(
         llm=session.llm,
         retriever=(session.reranker if session.use_reranker else session.retriever),
         instruction=session.instruction,
@@ -144,7 +143,7 @@ def save_response(path, question, answer, context):
 
 # Streamed response emulator
 def response_generator(prompt):
-    response = invoke_conversational_retrieval_chain(
+    response = custom_invoke(
         chain=session.chain,
         input=prompt,
         trace=False,
@@ -166,103 +165,34 @@ initialize_components()
 
 st.title("Chat")
 # Initialize chat history
-if "messages" not in session:
-    session.messages = []
+if "messages_custom" not in session:
+    session.messages_custom = []
 
 
 # Display chat messages from history on app rerun
-for message in session.messages:
+for message in session.messages_custom:
     with st.chat_message(message["role"]):
         if message["role"] == "assistant":
             response = message["content"]["response"]
-            # tokens = message["content"]["token_usage"]
-            # context = message["content"]["context"]
             st.markdown(response)
-            # left, right = st.columns(2, vertical_alignment="center")
-            # with left:
-            #     st.text(
-            #         f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-            #     )
-            # with right:
-            #     save_response_button = st.button(
-            #         label="Save Response",
-            #         key=f"save_response_button_{session.messages.index(message)}",
-            #     )
-
-            # if save_response_button:
-            #     with st.spinner("Saving..."):
-            #         save_file_path = (
-            #             f"./responses/{session.index_name}_{session.vector_db}.txt"
-            #         )
-
-            #         save_response(
-            #             path=save_file_path,
-            #             question=session.messages[session.messages.index(message) - 1][
-            #                 "content"
-            #             ],
-            #             answer=response,
-            #             context=context,
-            #         )
-            #     st.success("Response Saved.")
-            # st.text(f"Sources:")
-            # for i in range(0, len(context)):
-            #     with st.popover(f"{context[i][1]}"):
-            #         st.markdown(context[i][0])
         else:
             st.markdown(message["content"])
 
+
 # Accept user input
 if prompt := st.chat_input("Enter you message..."):
-    session.messages.append({"role": "user", "content": prompt})
+    session.messages_custom.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Display assistant response in chat message container
     with st.chat_message("assistant"):
         response = st.write_stream(response_generator(prompt))
-        # tokens = session.token_usage
-        # context = session.context
-        # left, right = st.columns(2, vertical_alignment="center")
-        # with left:
-        #     st.text(
-        #         f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-        #     )
-
-        # """
-        # with right:
-        #     save_response_button = st.button(
-        #         label="Save Response",
-        #         key=f"save_response_button_{len(session.messages)}",
-        #     )
-
-        #     if save_response_button:
-        #         with st.spinner("Saving..."):
-        #             save_file_path = (
-        #                 f"./responses/{session.index_name}_{session.vector_db}.txt"
-        #             )
-
-        #             save_response(
-        #                 path=save_file_path,
-        #                 question=prompt,
-        #                 answer=response,
-        #                 context=context,
-        #             )
-        #         st.success("Response Saved.")
-        # """
-
-        # st.text(f"Sources:")
-        # for i in range(0, len(context)):
-        #     with st.popover(f"{context[i][1]}"):
-        #         st.markdown(context[i][0])
-
     # Add assistant response to chat history
-    session.messages.append(
+    session.messages_custom.append(
         {
             "role": "assistant",
             "content": {
                 "response": response,
-                # "token_usage": tokens,
-                # "context": context,
             },
         }
     )
@@ -364,6 +294,9 @@ with st.sidebar:
                     file_upload = st.file_uploader(
                         label="Upload a File", type=["csv", "xlsx"], key="file_upload"
                     )
+                    file_description = st.text_input(
+                        label="File Description", key="file_description"
+                    )
                     if file_upload:
                         session.file_extension = file_upload.name.split(".")[-1]
                         session.file_name = f"{uuid.uuid4()}.{session.file_extension}"
@@ -413,45 +346,50 @@ with st.sidebar:
                     elapsed_time = time.perf_counter() - start_time
                 st.success(f"Crawling Finised. {elapsed_time}s")
 
-            elif session.data_type == "File":
-                with st.spinner("Extracting..."):
+                with st.spinner("Ingesting Data..."):
                     start_time = time.perf_counter()
-                    match session.file_extension:
-                        case "xlsx":
-                            docs = load_excel(f"./uploaded_files/{session.file_name}")
-                        case "csv":
-                            docs = load_csv(f"./uploaded_files/{session.file_name}")
-                        case _:
-                            print("Invalid File Type.")
-                            pass
+                    ingest_data(
+                        documents=docs,
+                        embedding_model=session.ingest_embedding_model,
+                        index_name=session.ingest_index_name,
+                        dimension=session.ingest_dimension,
+                        vector_db=session.ingest_vector_db,
+                        chunk_size=session.chunk_size,
+                        chunk_overlap=session.chunk_overlap,
+                        hybrid_search=session.ingest_hybrid_search,
+                        sparse_model=session.ingest_sparse_model,
+                        hybrid_search_type=session.ingest_hybrid_search_type,
+                    )
+
+                    session.embedding_model = session.ingest_embedding_model
+                    session.index_name = session.ingest_index_name
+                    session.dimension = session.ingest_dimension
+                    session.vector_db = session.ingest_vector_db
+                    session.hybrid_search = session.ingest_hybrid_search
+                    session.sparse_model = session.ingest_sparse_model
+                    session.hybrid_search_type = session.ingest_hybrid_search_type
+
                     elapsed_time = time.perf_counter() - start_time
-                st.success(f"Extracting Finised. {elapsed_time}s")
+                st.success(f"Ingestion Finished. {elapsed_time}s")
+            elif session.data_type == "File":
+                with st.spinner("Ingesting..."):
+                    start_time = time.perf_counter()
+                    if session.file_extension == "xlsx":
+                        ingest_sql(
+                            file_path=f"./uploaded_files/{session.file_name}",
+                            description=session.file_description,
+                            embedding_model=session.ingest_embedding_model,
+                            index_name=session.ingest_index_name,
+                            dimension=session.ingest_dimension,
+                            vector_db=session.ingest_vector_db,
+                        )
+                        session.embedding_model = session.ingest_embedding_model
+                        session.index_name = session.ingest_index_name
+                        session.dimension = session.ingest_dimension
+                        session.vector_db = session.ingest_vector_db
+                    elapsed_time = time.perf_counter() - start_time
+                st.success(f"Ingestion Finished. {elapsed_time}s")
 
-            with st.spinner("Ingesting Data..."):
-                start_time = time.perf_counter()
-                ingest_data(
-                    documents=docs,
-                    embedding_model=session.ingest_embedding_model,
-                    index_name=session.ingest_index_name,
-                    dimension=session.ingest_dimension,
-                    vector_db=session.ingest_vector_db,
-                    chunk_size=session.chunk_size,
-                    chunk_overlap=session.chunk_overlap,
-                    hybrid_search=session.ingest_hybrid_search,
-                    sparse_model=session.ingest_sparse_model,
-                    hybrid_search_type=session.ingest_hybrid_search_type,
-                )
-
-                session.embedding_model = session.ingest_embedding_model
-                session.index_name = session.ingest_index_name
-                session.dimension = session.ingest_dimension
-                session.vector_db = session.ingest_vector_db
-                session.hybrid_search = session.ingest_hybrid_search
-                session.sparse_model = session.ingest_sparse_model
-                session.hybrid_search_type = session.ingest_hybrid_search_type
-
-                elapsed_time = time.perf_counter() - start_time
-            st.success(f"Ingestion Finished. {elapsed_time}s")
     # Retriever Config
     with st.container(border=True):
         st.title("Retriever Config")
