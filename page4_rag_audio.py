@@ -29,10 +29,7 @@ from typing import get_args
 import math
 import uuid
 from audio_recorder_streamlit import audio_recorder
-from streamlit_float import *
-from audiorecorder import audiorecorder
 
-float_init()
 initial_config = {
     "chat_model": "gpt-4o-mini",
     "embedding_model": "text-embedding-3-large",
@@ -41,8 +38,8 @@ initial_config = {
     "ingest_dimension": 256,
     "vector_db": "qdrant",
     "ingest_vector_db": "qdrant",
-    "index_name": "hlb_chat",
-    "ingest_index_name": "csv_test",
+    "index_name": "audio_rag_test1",
+    "ingest_index_name": "audio_rag_test1",
     "hybrid_search": False,
     "ingest_hybrid_search": False,
     "hybrid_search_type": None,
@@ -65,12 +62,12 @@ for key, value in initial_config.items():
 
 
 data_ingest_config = {
-    "data_type": "File",
+    "data_type": "URL",
     "initial_url": "https://win066.wixsite.com/brillar-bank",
     "ignore_urls": "https://win066.wixsite.com/brillar-bank/brillar-bank-blog-1,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-2,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-3,https://win066.wixsite.com/brillar-bank/brillar-bank-blog-4,",
     "crawling_method": "crawl_child_urls",
     "max_depth": 3,
-    "chunking": False,
+    "chunking": True,
     "chunk_size": 2000,
     "chunk_overlap": 200,
 }
@@ -104,16 +101,16 @@ def initialize_components():
             top_p=session.top_p,
         )
 
-    if "retriever" not in session:
-        session.retriever = get_retriever(
-            index_name=session.index_name,
-            embedding_model=session.embedding_model,
-            dimension=session.dimension,
-            vector_db=session.vector_db,
-            hybrid_search=session.hybrid_search,
-            top_k=session.top_k,
-            score_threshold=session.score_threshold,
-        )
+    # if "retriever" not in session:
+    #     session.retriever = get_retriever(
+    #         index_name=session.index_name,
+    #         embedding_model=session.embedding_model,
+    #         dimension=session.dimension,
+    #         vector_db=session.vector_db,
+    #         hybrid_search=session.hybrid_search,
+    #         top_k=session.top_k,
+    #         score_threshold=session.score_threshold,
+    #     )
 
     # if "reranker" not in session:
     #     session.reranker = get_reranker(
@@ -148,26 +145,19 @@ def save_response(path, question, answer, context):
         )
 
 
-def invoke_chain(prompt, response_file_path=None):
+# Streamed response emulator
+def response_generator(prompt, response_file_path):
     response = invoke_conversational_retrieval_chain(
         chain=session.chain,
         input=prompt,
-        trace=False,
+        trace=True,
     )
-    
     answer = response["answer"]
-    if response_file_path is not None:
-        text_to_speech(text=answer, response_audio_file_path=response_file_path)
-
-    return answer
+    text_to_speech(answer, response_file_path)
     # source_documents = response["source_documents"]
     # token_usage = response["token_usage"]
     # session.token_usage = token_usage
     # session.context = [[i["page_content"], i["source"]] for i in source_documents]
-
-
-# Streamed response emulator
-def response_generator(answer):
     for word in answer.split():
         yield word + " "
         time.sleep(0.05)
@@ -175,172 +165,28 @@ def response_generator(answer):
 
 initialize_components()
 
-if "chain" not in session:
-    get_chain()
+# if "chain" not in session:
+#     get_chain()
 
-st.title("HLB Chat")
+st.title("Audio Test")
 # Initialize chat history
-if "messages" not in session:
-    session.messages = []
 
-# Display chat messages from history on app rerun
+audio_bytes = audio_recorder(text="")
 
-audio_input = None
-float_container = st.container()
-with float_container:
-    col1, col2 = st.columns([11, 1])
-    with col1:
-        text_input = st.chat_input("Enter your message...")
-
-    with col2:
-        audio_input = None
-        audio_input = audiorecorder("🎙️", "🔴")
-
-
-float_container.float(
-    "bottom: 0px; background: white; padding-bottom: 20px; padding-top: 20px; justify-content: center"
-)
-
-for message in session.messages:
-    with st.chat_message(message["role"]):
-        if message["role"] == "assistant":
-            response = message["content"]["response"]
-            audio = message["content"]["audio"]
-            if audio:
-                with open(audio, "rb") as audio_file:
-                    st.audio(audio_file)
-            # tokens = message["content"]["token_usage"]
-            # context = message["content"]["context"]
-            st.markdown(response)
-            # left, right = st.columns(2, vertical_alignment="center")
-            # with left:
-            #     st.text(
-            #         f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-            #     )
-            # with right:
-            #     save_response_button = st.button(
-            #         label="Save Response",
-            #         key=f"save_response_button_{session.messages.index(message)}",
-            #     )
-
-            # if save_response_button:
-            #     with st.spinner("Saving..."):
-            #         save_file_path = (
-            #             f"./responses/{session.index_name}_{session.vector_db}.txt"
-            #         )
-
-            #         save_response(
-            #             path=save_file_path,
-            #             question=session.messages[session.messages.index(message) - 1][
-            #                 "content"
-            #             ],
-            #             answer=response,
-            #             context=context,
-            #         )
-            #     st.success("Response Saved.")
-            # st.text(f"Sources:")
-            # for i in range(0, len(context)):
-            #     with st.popover(f"{context[i][1]}"):
-            #         st.markdown(context[i][0])
-        else:
-            st.markdown(message["content"])
-
-if text_input:
-    prompt = text_input
-
-    session.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        response = invoke_chain(prompt, None)
-
-        st.write_stream(response_generator(response))
-
-        # tokens = session.token_usage
-        # context = session.context
-        # left, right = st.columns(2, vertical_alignment="center")
-        # with left:
-        #     st.text(
-        #         f'Input Tokens: {tokens["input_tokens"]}, Output Tokens: {tokens["output_tokens"]}'
-        #     )
-
-        # """
-        # with right:
-        #     save_response_button = st.button(
-        #         label="Save Response",
-        #         key=f"save_response_button_{len(session.messages)}",
-        #     )
-
-        #     if save_response_button:
-        #         with st.spinner("Saving..."):
-        #             save_file_path = (
-        #                 f"./responses/{session.index_name}_{session.vector_db}.txt"
-        #             )
-
-        #             save_response(
-        #                 path=save_file_path,
-        #                 question=prompt,
-        #                 answer=response,
-        #                 context=context,
-        #             )
-        #         st.success("Response Saved.")
-        # """
-
-        # st.text(f"Sources:")
-        # for i in range(0, len(context)):
-        #     with st.popover(f"{context[i][1]}"):
-        #         st.markdown(context[i][0])
-
-    # Add assistant response to chat history
-    session.messages.append(
-        {
-            "role": "assistant",
-            "content": {
-                "response": response,
-                "audio": None,
-                # "token_usage": tokens,
-                # "context": context,
-            },
-        }
-    )
-
-elif len(audio_input) > 0:
-    input_file_name = f"{uuid.uuid4()}.mp3"
-    audio_file_path = Path(f"./audio/{input_file_name}").resolve()
-    audio_input.export(audio_file_path)
-    # with open(audio_file_path, "wb") as audio_file:
-    #     audio_file.write(audio_input)
+if audio_bytes:
+    audio_file_path = Path("./audio/recorded.mp3")
+    with open(audio_file_path, "wb") as audio_file:
+        audio_file.write(audio_bytes)
 
     prompt = speech_to_text(audio_file_path)
-    session.messages.append({"role": "user", "content": prompt})
-
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        response_file_name = f"{uuid.uuid4()}.mp3"
-        response_file_path = Path(f"./audio/{response_file_name}").resolve()
-
-        response = invoke_chain(prompt, response_file_path)
+        response_file_path = Path("./audio/response.mp3")
+        response = st.write_stream(response_generator(prompt, response_file_path))
         with open(response_file_path, "rb") as response_audio:
             st.audio(response_audio)
-        st.write_stream(response_generator(response))
-
-    # Add assistant response to chat history
-    session.messages.append(
-        {
-            "role": "assistant",
-            "content": {
-                "response": response,
-                "audio": response_file_path,
-            },
-        }
-    )
-else:
-    pass
 
 
 def common_ui_configs(prefix=""):

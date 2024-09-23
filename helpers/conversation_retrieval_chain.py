@@ -24,8 +24,6 @@ from langchain_core.runnables import Runnable, RunnablePassthrough, chain
 from operator import itemgetter
 from langchain.globals import set_debug
 
-set_debug(True)
-
 
 class LLMResultHandler(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:

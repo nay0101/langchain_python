@@ -21,6 +21,8 @@ from helpers.fileloaders import load_csv, load_excel
 
 from helpers.sql_store import ingest_sql
 
+from helpers.voice import speech_to_text, text_to_speech
+
 __all__ = [
     "create_conversational_retrieval_chain",
     "invoke_conversational_retrieval_chain",
@@ -36,4 +38,6 @@ __all__ = [
     "ingest_sql",
     "custom_chain",
     "custom_invoke",
+    "speech_to_text",
+    "text_to_speech",
 ]
